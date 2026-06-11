@@ -1,0 +1,16 @@
+{
+    "name": "Duet3D CANlib",
+    "description": "Decodes Duet3D CANlib CAN-FD messages (identifier + full payload), generated from the CANlib headers.",
+    "version": "0.1.0",
+    "apiVersion": "1.0.0",
+    "author": "DuetCANlib HLA",
+    "render": {
+        "type": "hla"
+    },
+    "extensions": {
+        "Duet3D CANlib": {
+            "type": "HighLevelAnalyzer",
+            "entryPoint": "HighLevelAnalyzer.Hla"
+        }
+    }
+}
