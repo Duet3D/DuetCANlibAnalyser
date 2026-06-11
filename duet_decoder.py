@@ -207,16 +207,26 @@ class DuetDecoder:
 
     # -- presentation --------------------------------------------------------
 
-    def summary(self, decoded: dict, show_reserved: bool = False) -> str:
-        head = (f"{decoded['type']} {decoded['src_name']}→{decoded['dst_name']} "
-                f"[{decoded['dir']}]")
-        fields = decoded.get("fields", {})
+    def contents(self, decoded: dict, show_reserved: bool = False) -> str:
+        """Format just the decoded payload fields as 'key=val  key=val ...'."""
         parts = []
-        for k, v in fields.items():
+        for k, v in decoded.get("fields", {}).items():
             if not show_reserved and (k.startswith("zero") or k == "_table"):
                 continue
             parts.append(f"{k}={self._fmt(v)}")
-        body = "  ".join(parts)
+        return "  ".join(parts)
+
+    def title(self, decoded: dict) -> str:
+        """The message's struct name, or the type name for generic/raw messages."""
+        fmt = decoded.get("format")
+        if fmt and fmt not in ("generic", "raw"):
+            return fmt
+        return decoded["type"]
+
+    def summary(self, decoded: dict, show_reserved: bool = False) -> str:
+        head = (f"{decoded['type']} {decoded['src_name']}→{decoded['dst_name']} "
+                f"[{decoded['dir']}]")
+        body = self.contents(decoded, show_reserved)
         return f"{head} | {body}" if body else head
 
     def _fmt(self, v):

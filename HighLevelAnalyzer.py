@@ -30,8 +30,11 @@ ADDRESS_AS_NAMES = True    # show "tool->main" instead of "121->0"
 
 class Hla(HighLevelAnalyzer):
     result_types = {
+        # The bubble/summary shows just the message struct name and the
+        # source->destination route. The decoded payload lives in the separate
+        # "contents" data field (visible in the Data table / terminal columns).
         "duet": {
-            "format": "{{data.type}} {{data.route}} {{data.dir}} | {{data.summary}}",
+            "format": "{{data.name}}  {{data.route}}",
         },
         "duet_error": {"format": "CAN error"},
     }
@@ -106,22 +109,20 @@ class Hla(HighLevelAnalyzer):
             return None
         try:
             decoded = self.decoder.decode(self.can_id, bytes(self.payload))
-            summary = self.decoder.summary(decoded, self._show_reserved)
-            route = self._route(decoded)
             out = AnalyzerFrame("duet", self.start_time, end_time, {
+                "name": self.decoder.title(decoded),       # message struct name
+                "route": self._route(decoded),             # src->dst
+                "contents": self.decoder.contents(decoded, self._show_reserved),
                 "type": decoded["type"],
                 "dir": decoded["dir"],
-                "route": route,
                 "src": decoded["src"],
                 "dst": decoded["dst"],
                 "length": decoded["length"],
-                "format": decoded["format"],
-                "summary": summary,
             })
         except Exception as exc:  # never let one frame kill the stream
             out = AnalyzerFrame("duet", self.start_time, end_time, {
-                "type": "decode-error", "dir": "", "route": "",
-                "summary": f"{type(exc).__name__}: {exc}",
+                "name": "decode-error", "route": "",
+                "contents": f"{type(exc).__name__}: {exc}",
             })
         self._reset()
         return out

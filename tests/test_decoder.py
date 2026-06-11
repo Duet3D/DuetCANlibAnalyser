@@ -112,6 +112,20 @@ def test_summary_runs():
     assert "timeSync" in s and "→broadcast" in s
 
 
+def test_title_and_contents_split():
+    payload = struct.pack("<IIIII", 7, 8, 0, 9, 10)
+    out = D.decode(make_id(30, 0, 127), payload)
+    # title is the struct name; route/addresses are NOT in the contents field
+    assert D.title(out) == "CanMessageTimeSync"
+    contents = D.contents(out)
+    assert "timeSent=7" in contents
+    assert "broadcast" not in contents and "timeSync" not in contents
+
+    # generic/raw messages fall back to the type name for the title
+    gen = D.decode(make_id(6018, 0, 121), struct.pack("<I", 0))
+    assert D.title(gen) == "m569"
+
+
 def _run_all():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:
