@@ -34,18 +34,7 @@ layers turn edges into decoded Duet messages:
 
 ## ⚠️ Probe wiring — read this first
 
-CAN is a **differential** bus. Do **not** decode by putting analyzer ground on
-CAN‑L and signal on CAN‑H:
-
-- Referenced that way the signal is only ~2 V and **inverted** relative to a
-  normal logic-level CAN signal, so the low-level analyzer will struggle.
-- Worse, tying analyzer ground (PC-referenced) to CAN‑L — which floats 1.5–2.5 V
-  above system ground — can disturb or short the bus.
-
-**Correct tap:** probe the **RX (or TX) pin of the CAN transceiver** on the
-board, with analyzer **ground on the board's system GND**. That gives a clean,
-correctly-polarised 0–3.3 V copy of the bus. If you can only reach the
-differential pair, put a CAN transceiver breakout on it and probe its RX line.
+CAN is a **differential** bus. Ensure that your logic analyzer probes are connected correctly to read the differential signal.
 
 ---
 
@@ -54,7 +43,7 @@ differential pair, put a CAN transceiver breakout on it and probe its RX line.
 1. Build/install a low-level CAN-FD analyzer (Molinaro plugin or built-in CAN).
 2. In Logic 2: **Extensions ▸ ⋯ ▸ Load Existing Extension…** and select this
    folder's [`extension.json`](extension.json).
-3. Add the low-level CAN analyzer to your capture and configure its bit rates
+3. Add the low-level CAN-FD analyzer to your capture and configure its bit rates
    (e.g. 1 Mbit/s nominal; Duet uses BRS for the data phase).
 4. Add the **"Duet3D CANlib"** analyzer and set its **Input Analyzer** to the
    CAN analyzer from step 3.
@@ -83,6 +72,8 @@ differential pair, put a CAN transceiver breakout on it and probe its RX line.
   parameter table in CANlib.
 - Anything unmapped still gets the full identifier decode plus raw payload hex,
   so **every** message on the bus is identified.
+
+![1781254884661](image/README/1781254884661.png)
 
 ---
 
