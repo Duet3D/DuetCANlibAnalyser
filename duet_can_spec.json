@@ -104,7 +104,10 @@
   "6067": "setDefaultHeaterModel",
   "6068": "setHeaterTemperatureV1",
   "6069": "heaterModelV3",
-  "6070": "setPressureAdvanceV2"
+  "6070": "setPressureAdvanceV2",
+  "6071": "setConnectionTimeout",
+  "6072": "m970",
+  "6073": "m970p3"
  },
  "structsByType": {
   "30": {
@@ -1618,10 +1621,17 @@
      "signed": false
     },
     {
-     "name": "zero2",
+     "name": "calibrate",
      "kind": "bitfield",
      "bit_offset": 25,
-     "bit_width": 23,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "zero2",
+     "kind": "bitfield",
+     "bit_offset": 26,
+     "bit_width": 22,
      "signed": false
     },
     {
@@ -1776,7 +1786,7 @@
      "signed": false
     },
     {
-     "name": "zero",
+     "name": "endstopType",
      "kind": "bitfield",
      "bit_offset": 12,
      "bit_width": 4,
@@ -2095,7 +2105,14 @@
      "name": "fragmentNumber",
      "kind": "bitfield",
      "bit_offset": 16,
-     "bit_width": 7,
+     "bit_width": 5,
+     "signed": false
+    },
+    {
+     "name": "numWords",
+     "kind": "bitfield",
+     "bit_offset": 21,
+     "bit_width": 2,
      "signed": false
     },
     {
@@ -2113,10 +2130,29 @@
      "signed": false
     },
     {
+     "name": "dataWords",
+     "kind": "array",
+     "byte_offset": 4,
+     "scalar": "u",
+     "elem_bytes": 4,
+     "signed": false,
+     "count_from": {
+      "field": "numWords"
+     }
+    },
+    {
      "name": "text",
      "kind": "string",
      "byte_offset": 4,
-     "max_len": 60
+     "max_len": 60,
+     "offset_from": {
+      "field": "numWords",
+      "scale": 4
+     },
+     "max_len_from": {
+      "field": "numWords",
+      "scale": 4
+     }
     }
    ]
   },
@@ -2423,10 +2459,24 @@
      "signed": false
     },
     {
-     "name": "zero",
+     "name": "isReconnect",
      "kind": "bitfield",
      "bit_offset": 165,
-     "bit_width": 3,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "wasShutDown",
+     "kind": "bitfield",
+     "bit_offset": 166,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "zero",
+     "kind": "bitfield",
+     "bit_offset": 167,
+     "bit_width": 1,
      "signed": false
     },
     {
@@ -3004,10 +3054,38 @@
        "signed": false
       },
       {
-       "name": "zero1",
+       "name": "filamentPresentValid",
        "kind": "bitfield",
        "bit_offset": 12,
-       "bit_width": 12,
+       "bit_width": 1,
+       "signed": false
+      },
+      {
+       "name": "filamentPresent",
+       "kind": "bitfield",
+       "bit_offset": 13,
+       "bit_width": 1,
+       "signed": false
+      },
+      {
+       "name": "motionDetected",
+       "kind": "bitfield",
+       "bit_offset": 14,
+       "bit_width": 1,
+       "signed": false
+      },
+      {
+       "name": "extraDataValid",
+       "kind": "bitfield",
+       "bit_offset": 15,
+       "bit_width": 1,
+       "signed": false
+      },
+      {
+       "name": "extraData",
+       "kind": "bitfield",
+       "bit_offset": 16,
+       "bit_width": 8,
        "signed": false
       },
       {
@@ -3380,7 +3458,10 @@
   "6059": "testReport",
   "6064": "m655",
   "6066": "m111",
-  "6070": "setPressureAdvanceV2"
+  "6070": "setPressureAdvanceV2",
+  "6071": "setConnectionTimeout",
+  "6072": "m970",
+  "6073": "m970p3"
  },
  "paramTables": {
   "M42Params": [
@@ -3648,6 +3729,11 @@
     "macro": "REDUCED_STRING_PARAM",
     "letter": "Y",
     "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "B",
+    "arg": null
    }
   ],
   "M569Point2Params": [
@@ -3664,6 +3750,65 @@
    {
     "macro": "UINT32_PARAM",
     "letter": "V",
+    "arg": null
+   },
+   {
+    "macro": "UINT8_PARAM",
+    "letter": "S",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "J",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "O",
+    "arg": null
+   }
+  ],
+  "M970Params": [
+   {
+    "macro": "LOCAL_DRIVER_PARAM",
+    "letter": "P",
+    "arg": null
+   },
+   {
+    "macro": "UINT8_PARAM",
+    "letter": "S",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "V",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "A",
+    "arg": null
+   }
+  ],
+  "M970Point3Params": [
+   {
+    "macro": "LOCAL_DRIVER_PARAM",
+    "letter": "P",
+    "arg": null
+   },
+   {
+    "macro": "UINT8_PARAM",
+    "letter": "S",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "J",
+    "arg": null
+   },
+   {
+    "macro": "FLOAT_PARAM",
+    "letter": "O",
     "arg": null
    }
   ],
@@ -3791,6 +3936,11 @@
    {
     "macro": "REDUCED_STRING_PARAM",
     "letter": "C",
+    "arg": null
+   },
+   {
+    "macro": "INT16_PARAM",
+    "letter": "B",
     "arg": null
    }
   ],
@@ -3932,6 +4082,11 @@
     "macro": "UINT16_PARAM",
     "letter": "S",
     "arg": null
+   },
+   {
+    "macro": "REDUCED_STRING_PARAM",
+    "letter": "C",
+    "arg": null
    }
   ],
   "M122P1Params": [
@@ -4019,6 +4174,13 @@
     "letter": "S",
     "arg": null
    }
+  ],
+  "M959Params": [
+   {
+    "macro": "UINT16_PARAM",
+    "letter": "T",
+    "arg": null
+   }
   ]
  },
  "typeNameToParamTable": {
@@ -4036,7 +4198,10 @@
   "m569p7": "M569Point7Params",
   "m569p4": "M569Point4Params",
   "m655": "M655Params",
-  "m111": "M111Params"
+  "m111": "M111Params",
+  "m970": "M970Params",
+  "m970p3": "M970Point3Params",
+  "setConnectionTimeout": "M959Params"
  },
  "generic": {
   "header": {
