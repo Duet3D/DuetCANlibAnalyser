@@ -17,22 +17,28 @@ jobs:
   regenerate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: Update CANlib to latest on its tracked branch
-        run: git submodule update --remote --recursive
+        run: |
+          # actions/checkout fetches submodules shallowly at the pinned commit, so
+          # the submodule has no refs/remotes/origin/<branch> for `--remote` to
+          # resolve. Fetch the branch heads first.
+          git submodule foreach --recursive \
+            'git fetch --depth=1 origin "+refs/heads/*:refs/remotes/origin/*"'
+          git submodule update --remote --recursive
 
       - name: Regenerate spec and run tests
         run: python regenerate.py
 
       - name: Open PR if the spec changed
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore: regenerate Duet CAN spec from CANlib"
           title: "Update Duet CAN decode spec from CANlib"
