@@ -116,27 +116,46 @@ class DuetDecoder:
     def _decode_fields(self, fields: list, payload: bytes, base: int = 0) -> dict:
         out = {}
         for f in fields:
-            val = self._decode_one(f, payload, base)
+            val = self._decode_one(f, payload, base, out)
             if val is not None:
                 out[f["name"]] = val
         return out
 
-    def _decode_one(self, f: dict, payload: bytes, base: int):
+    @staticmethod
+    def _dynamic(rule, decoded: dict) -> int:
+        """Resolve a count/offset that depends on an earlier field's value.
+
+        Some CANlib layouts are only fixed at runtime -- see
+        ``CanMessageStandardReply::GetText()``, where the text starts after
+        ``numWords`` 32-bit data words. The generator records those as
+        ``{"field": ..., "scale": ...}`` rules referring to a preceding field.
+        """
+        if not rule:
+            return 0
+        val = decoded.get(rule["field"])
+        return val * rule.get("scale", 1) if isinstance(val, int) else 0
+
+    def _decode_one(self, f: dict, payload: bytes, base: int,
+                    decoded: dict | None = None):
+        decoded = decoded or {}
         kind = f["kind"]
         if kind == "bitfield":
             return _extract_bits(payload, base * 8 + f["bit_offset"],
                                  f["bit_width"], f.get("signed", False))
-        off = base + f["byte_offset"]
+        off = base + f["byte_offset"] + self._dynamic(f.get("offset_from"), decoded)
         if kind == "scalar":
             raw = payload[off:off + f["bytes"]]
             if len(raw) < f["bytes"]:
                 return None
             return _decode_scalar(f["scalar"], raw)
         if kind == "string":
-            raw = payload[off:off + f["max_len"]]
+            max_len = f["max_len"] - self._dynamic(f.get("max_len_from"), decoded)
+            raw = payload[off:off + max(0, max_len)]
             return raw.split(b"\x00", 1)[0].decode("latin-1", "replace")
         if kind == "array":
-            n = min(f["count"], max(0, (len(payload) - off) // f["elem_bytes"]))
+            count = (self._dynamic(f["count_from"], decoded)
+                     if "count_from" in f else f["count"])
+            n = min(count, max(0, (len(payload) - off) // f["elem_bytes"]))
             vals = []
             for i in range(n):
                 p = off + i * f["elem_bytes"]

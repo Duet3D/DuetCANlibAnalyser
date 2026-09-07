@@ -126,6 +126,90 @@ def test_title_and_contents_split():
     assert D.title(gen) == "m569"
 
 
+# CanMessageStandardReply as CANlib declares it from 3.7 onwards, with the
+# annotations generate_spec.py adds for GetText(). Built here rather than read
+# from the committed spec so the test holds whichever CANlib is pinned.
+_STANDARD_REPLY_V37 = {
+    "name": "CanMessageStandardReply", "size": 64,
+    "fields": [
+        {"name": "requestId", "kind": "bitfield", "bit_offset": 0,
+         "bit_width": 12, "signed": False},
+        {"name": "resultCode", "kind": "bitfield", "bit_offset": 12,
+         "bit_width": 4, "signed": False},
+        {"name": "fragmentNumber", "kind": "bitfield", "bit_offset": 16,
+         "bit_width": 5, "signed": False},
+        {"name": "numWords", "kind": "bitfield", "bit_offset": 21,
+         "bit_width": 2, "signed": False},
+        {"name": "moreFollows", "kind": "bitfield", "bit_offset": 23,
+         "bit_width": 1, "signed": False},
+        {"name": "extra", "kind": "bitfield", "bit_offset": 24,
+         "bit_width": 8, "signed": False},
+        {"name": "dataWords", "kind": "array", "byte_offset": 4,
+         "scalar": "u", "elem_bytes": 4, "signed": False,
+         "count_from": {"field": "numWords"}},
+        {"name": "text", "kind": "string", "byte_offset": 4, "max_len": 60,
+         "offset_from": {"field": "numWords", "scale": 4},
+         "max_len_from": {"field": "numWords", "scale": 4}},
+    ],
+}
+
+
+def _decoder_with_v37_reply():
+    spec = dict(D.spec)
+    spec["structsByType"] = dict(spec["structsByType"])
+    spec["structsByType"]["4510"] = _STANDARD_REPLY_V37
+    return DuetDecoder(spec)
+
+
+def _reply_payload(num_words, words, text):
+    header = 0x123 | (0 << 12) | (0 << 16) | (num_words << 21)
+    return (struct.pack("<I", header)
+            + b"".join(struct.pack("<I", w) for w in words) + text)
+
+
+def test_standard_reply_data_words():
+    # From 3.7 fragment 0 may carry up to three 32-bit words ahead of the text;
+    # decoding the text from a fixed offset would return the first word's bytes.
+    d = _decoder_with_v37_reply()
+    rid = make_id(4510, 121, 0, response=True)
+
+    f = d.decode(rid, _reply_payload(0, [], b"ok done\x00"))["fields"]
+    assert f["text"] == "ok done"
+    assert "dataWords" not in f          # nothing to report when numWords == 0
+
+    f = d.decode(rid, _reply_payload(1, [1234], b"tare done\x00"))["fields"]
+    assert f["numWords"] == 1
+    assert f["dataWords"] == [1234]
+    assert f["text"] == "tare done"
+
+    f = d.decode(rid, _reply_payload(3, [1, 2, 0xFFFFFFFF], b"three\x00"))["fields"]
+    assert f["dataWords"] == [1, 2, 0xFFFFFFFF]
+    assert f["text"] == "three"
+
+
+def test_standard_reply_text_is_shortened_by_data_words():
+    # GetMaxTextLength() is sizeof(text) - numWords * 4, so unterminated text
+    # must stop at the end of the message rather than run past it.
+    d = _decoder_with_v37_reply()
+    rid = make_id(4510, 121, 0, response=True)
+    f = d.decode(rid, _reply_payload(1, [7], b"x" * 60))["fields"]
+    assert f["text"] == "x" * 56
+
+
+def test_param_table_override():
+    # setConnectionTimeout carries M959 parameters, which the name heuristic
+    # cannot see; m970 still resolves by name alone.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "generator"))
+    from generate_spec import map_types_to_tables
+
+    mapped = map_types_to_tables(
+        {6071: "setConnectionTimeout", 6072: "m970", 6015: "setDateTime"},
+        {"M959Params": [], "M970Params": []})
+    assert mapped["setConnectionTimeout"] == "M959Params"
+    assert mapped["m970"] == "M970Params"
+    assert "setDateTime" not in mapped          # no table exists for it
+
+
 def _run_all():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

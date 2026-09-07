@@ -491,6 +491,16 @@ def parse_param_tables(text: str) -> dict:
     return tables
 
 
+# Generic message types whose parameter table cannot be derived from the type
+# name. Only add an entry where CANlib itself ties the two together; a guess
+# here would mislabel real traffic, which is worse than leaving it undecoded.
+TYPE_TABLE_OVERRIDES = {
+    # CanId.h:  "setConnectionTimeout = 6071   // for M959, added in RRF 3.7"
+    # CanMessageGenericTables.h:  "M959 parameters."
+    "setConnectionTimeout": "M959Params",
+}
+
+
 def map_types_to_tables(generic_types: dict, tables: dict) -> dict:
     """Heuristically link a generic message-type name to a param table name."""
     def norm(s: str) -> str:
@@ -504,7 +514,51 @@ def map_types_to_tables(generic_types: dict, tables: dict) -> dict:
         key = norm(name)
         if key in table_norm:
             out[name] = table_norm[key]
+    names = set(generic_types.values())
+    for name, table in TYPE_TABLE_OVERRIDES.items():
+        if name in names and table in tables:
+            out[name] = table
     return out
+
+
+# Layouts that CANlib fixes in an accessor rather than in the struct
+# declaration, so the header parser cannot see them. Each rule shifts a string
+# field along by ``count_field`` elements and exposes those elements as an
+# array of their own.
+DYNAMIC_LAYOUTS = {
+    # CanMessageStandardReply::GetText() returns text + numWords * 4: fragment
+    # 0 carries up to three 32-bit data words ahead of the reply text.
+    "CanMessageStandardReply": [
+        {"string_field": "text", "count_field": "numWords",
+         "elem_bytes": 4, "array_field": "dataWords"},
+    ],
+}
+
+
+def apply_dynamic_layouts(structs_by_type: dict) -> None:
+    """Annotate fields whose offset depends on the value of another field."""
+    for entry in structs_by_type.values():
+        for rule in DYNAMIC_LAYOUTS.get(entry["name"], ()):
+            fields = entry["fields"]
+            idx = next((i for i, f in enumerate(fields)
+                        if f["name"] == rule["string_field"]), None)
+            if idx is None:
+                print(f"WARNING: dynamic layout rule for {entry['name']} names "
+                      f"a field '{rule['string_field']}' that no longer exists",
+                      file=sys.stderr)
+                continue
+            if not any(f["name"] == rule["count_field"] for f in fields):
+                continue        # this CANlib predates the field; nothing to do
+            sf = fields[idx]
+            shift = {"field": rule["count_field"], "scale": rule["elem_bytes"]}
+            sf["offset_from"] = shift        # text starts after the words
+            sf["max_len_from"] = shift       # ...and is that much shorter
+            fields.insert(idx, {
+                "name": rule["array_field"], "kind": "array",
+                "byte_offset": sf["byte_offset"], "scalar": "u",
+                "elem_bytes": rule["elem_bytes"], "signed": False,
+                "count_from": {"field": rule["count_field"]},
+            })
 
 
 def main() -> int:
@@ -572,6 +626,8 @@ def main() -> int:
         structs_by_type[str(tid)] = {
             "name": sname, "size": entry["size"], "fields": entry["fields"],
         }
+
+    apply_dynamic_layouts(structs_by_type)
 
     typed = set(struct_msgtype.values())
     generic_types = {k: v for k, v in message_types.items() if k not in typed}
