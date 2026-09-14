@@ -4084,6 +4084,11 @@
     "arg": null
    },
    {
+    "macro": "UINT32_PARAM",
+    "letter": "Q",
+    "arg": null
+   },
+   {
     "macro": "REDUCED_STRING_PARAM",
     "letter": "C",
     "arg": null
