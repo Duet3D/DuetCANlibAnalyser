@@ -1688,10 +1688,24 @@
      "signed": false
     },
     {
-     "name": "zero2",
+     "name": "fanOnly",
      "kind": "bitfield",
      "bit_offset": 24,
-     "bit_width": 8,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "nonPrintingExtruderMove",
+     "kind": "bitfield",
+     "bit_offset": 25,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "zero2",
+     "kind": "bitfield",
+     "bit_offset": 26,
+     "bit_width": 6,
      "signed": false
     },
     {
@@ -4081,6 +4095,11 @@
    {
     "macro": "UINT16_PARAM",
     "letter": "S",
+    "arg": null
+   },
+   {
+    "macro": "UINT32_PARAM",
+    "letter": "Q",
     "arg": null
    },
    {
