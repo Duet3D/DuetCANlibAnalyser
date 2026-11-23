@@ -34,7 +34,6 @@
   "105": "inputStateChangedV1",
   "106": "inputStateChangedV2",
   "2010": "setAddressAndNormalTiming",
-  "2011": "setFastTiming",
   "2012": "reset",
   "4012": "writeGpio",
   "4013": "readInputsRequest",
@@ -254,6 +253,11 @@
      "signed": false
     }
    ]
+  },
+  "10": {
+   "name": "CanMessageStartup",
+   "size": 0,
+   "fields": []
   },
   "45": {
    "name": "CanMessageStopMovement",
@@ -1688,10 +1692,24 @@
      "signed": false
     },
     {
-     "name": "zero2",
+     "name": "fanOnly",
      "kind": "bitfield",
      "bit_offset": 24,
-     "bit_width": 8,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "nonPrintingExtruderMove",
+     "kind": "bitfield",
+     "bit_offset": 25,
+     "bit_width": 1,
+     "signed": false
+    },
+    {
+     "name": "zero2",
+     "kind": "bitfield",
+     "bit_offset": 26,
+     "bit_width": 6,
      "signed": false
     },
     {
@@ -2473,7 +2491,7 @@
      "signed": false
     },
     {
-     "name": "zero",
+     "name": "noSmartDrivers",
      "kind": "bitfield",
      "bit_offset": 167,
      "bit_width": 1,
@@ -3427,11 +3445,9 @@
   }
  },
  "genericTypes": {
-  "10": "startup",
   "20": "controlledStop",
   "40": "powerFailing",
   "46": "insertHiccup",
-  "2011": "setFastTiming",
   "4524": "logMessage",
   "6015": "setDateTime",
   "6016": "updateDeltaParameters",
@@ -3661,6 +3677,11 @@
    {
     "macro": "INT8_PARAM",
     "letter": "U",
+    "arg": null
+   },
+   {
+    "macro": "UINT32_PARAM",
+    "letter": "C",
     "arg": null
    }
   ],
